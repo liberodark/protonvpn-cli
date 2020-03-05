@@ -7,7 +7,7 @@
 ###
 #Author: Mazin Ahmed <Mazin AT ProtonMail DOT ch>
 ######################################################
-version=1.1.2
+version=1.1.3
 
 if [[ ("$UID" != 0) && ("$1" != "ip") && ("$1" != "-ip") && \
       ("$1" != "--ip") && ! (-z "$1") && ("$1" != "-h") && \
@@ -67,7 +67,7 @@ function check_requirements() {
 
   if [[ (! -x "/etc/openvpn/update-resolv-conf") && ( $(detect_platform_type) != "macos") ]]; then
     echo "[!] Error: update-resolv-conf is not installed."
-    read -p "Would you like protonvpn-cli to install update-resolv-conf? (y/N): " "user_confirm"
+    read -r "Would you like protonvpn-cli to install update-resolv-conf? (y/N): " "user_confirm"
     if [[ "$user_confirm" == "y" || "$user_confirm" == "Y" ]]; then
       install_update_resolv_conf
     else
@@ -158,29 +158,29 @@ bindkey menubox \\h FIELD_NEXT
 function init_cli() {
   if [[ -f "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials" ]]; then
     echo -n "[!] User profile for protonvpn-cli has already been initialized. Would you like to start over with a fresh configuration? [Y/n]: "
-    read "reset_profile"
+    read -r "reset_profile"
   fi
   if  [[ ("$reset_profile" == "n" || "$reset_profile" == "N") ]]; then
      echo "[*] Profile initialization canceled."
      exit 0
   fi
 
-  rm -rf "$(get_protonvpn_cli_home)/"  # Previous profile will be removed/overwritten, if any.
-  mkdir -p "$(get_protonvpn_cli_home)/"
+  rm -rf "$(get_protonvpn_cli_home/)"  # Previous profile will be removed/overwritten, if any.
+  mkdir -p "$(get_protonvpn_cli_home/)"
 
   create_vi_bindings
 
-  read -p "Enter OpenVPN username: " "openvpn_username"
-  read -s -p "Enter OpenVPN password: " "openvpn_password"
+  read -r "Enter OpenVPN username: " "openvpn_username"
+  read -r "Enter OpenVPN password: " "openvpn_password"
   echo -e "$openvpn_username\n$openvpn_password" > "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials"
-  chown "$USER:$(id -gn $USER)" "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials"
+  chown "$USER:$(id -gn "$USER")" "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials"
   chmod 0400 "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials"
 
   echo -e "\n[.] ProtonVPN Plans:\n1) Free\n2) Basic\n3) Plus\n4) Visionary"
   protonvpn_tier=""
   available_plans=(1 2 3 4)
   while [[ $protonvpn_tier == "" ]]; do
-    read -p "Enter Your ProtonVPN plan ID: " "protonvpn_plan"
+    read -r "Enter Your ProtonVPN plan ID: " "protonvpn_plan"
     case "${available_plans[@]}" in  *"$protonvpn_plan"*)
       protonvpn_tier=$((protonvpn_plan-1))
       ;;
@@ -192,18 +192,18 @@ function init_cli() {
     ;; esac
   done
   echo -e "$protonvpn_tier" > "$(get_protonvpn_cli_home)/protonvpn_tier"
-  chown "$USER:$(id -gn $USER)" "$(get_protonvpn_cli_home)/protonvpn_tier"
+  chown "$USER:$(id -gn "$USER")" "$(get_protonvpn_cli_home)/protonvpn_tier"
   chmod 0400 "$(get_protonvpn_cli_home)/protonvpn_tier"
 
-  read -p "[.] Would you like to use a custom DNS server? (Warning: This would make your VPN connection vulnerable to DNS leaks. Only use it when you know what you're doing) [y/N]: " "use_custom_dns"
+  read -r "[.] Would you like to use a custom DNS server? (Warning: This would make your VPN connection vulnerable to DNS leaks. Only use it when you know what you're doing) [y/N]: " "use_custom_dns"
 
   if  [[ ("$use_custom_dns" == "y" || "$use_custom_dns" == "Y") ]]; then
      custom_dns=""
      while [[ $custom_dns == "" ]]; do
-       read -p "Custom DNS Server: " "custom_dns"
+       read -r "Custom DNS Server: " "custom_dns"
      done
      echo -e "$custom_dns" > "$(get_protonvpn_cli_home)/.custom_dns"
-     chown "$USER:$(id -gn $USER)" "$(get_protonvpn_cli_home)/.custom_dns"
+     chown "$USER:$(id -gn "$USER")" "$(get_protonvpn_cli_home)/.custom_dns"
      chmod 0400 "$(get_protonvpn_cli_home)/.custom_dns"
   fi
 
@@ -222,7 +222,7 @@ function init_cli() {
   rm -rf "$config_cache_path"
   mkdir -p "$config_cache_path"  # Folder for openvpn config cache.
 
-  chown -R "$USER:$(id -gn $USER)" "$(get_protonvpn_cli_home)/"
+  chown -R "$USER:$(id -gn "$USER")" "$(get_protonvpn_cli_home)/"
   chmod -R 0400 "$(get_protonvpn_cli_home)/"
 
   echo "[*] Done."
@@ -312,7 +312,7 @@ function manage_ipv6() {
 
     ipv6_service=$(< "$(get_protonvpn_cli_home)/.ipv6_services")
 
-    while read ipv6_service ; do
+    while read -r ipv6_service ; do
       networksetup -setv6automatic "$ipv6_service"
     done < "$(get_protonvpn_cli_home)/.ipv6_services"
 
@@ -333,7 +333,7 @@ function modify_dns() {
   # Backup DNS entries.
   if [[ ("$1" == "backup") ]]; then
     if [[  ( $(detect_platform_type) == "macos" ) ]]; then
-      networksetup listallnetworkservices | tail +2 | while read interface; do
+      networksetup listallnetworkservices | tail +2 | while read -r interface; do
         networksetup -getdnsservers "$interface" > "$(get_protonvpn_cli_home)/$(sanitize_interface_name "$interface").dns_backup"
       done
     else # non-Mac
@@ -347,8 +347,8 @@ function modify_dns() {
       dns_server=$(grep 'dhcp-option DNS' "$connection_logs" | head -n 1 | awk -F 'dhcp-option DNS ' '{print $2}' | cut -d ',' -f1) # ProtonVPN internal DNS.
 
     if [[ ( $(detect_platform_type) == "macos" ) ]]; then
-      networksetup listallnetworkservices | tail +2 | while read interface; do
-        networksetup -setdnsservers "$interface" $dns_server
+      networksetup listallnetworkservices | tail +2 | while read -r interface; do
+        networksetup -setdnsservers "$interface" "$dns_server"
       done
     else # non-Mac
       echo -e "# ProtonVPN DNS - protonvpn-cli\nnameserver $dns_server" > "/etc/resolv.conf"
@@ -361,8 +361,8 @@ function modify_dns() {
       dns_server=$(< "$custom_dns")
 
     if [[ ( $(detect_platform_type) == "macos" ) ]]; then
-      networksetup listallnetworkservices | tail +2 | while read interface; do
-        networksetup -setdnsservers "$interface" $dns_server
+      networksetup listallnetworkservices | tail +2 | while read -r interface; do
+        networksetup -setdnsservers "$interface" "$dns_server"
       done
     else # non-Mac
       echo -e "# ProtonVPN DNS - Custom DNS\nnameserver $dns_server" > "/etc/resolv.conf"
@@ -372,7 +372,7 @@ function modify_dns() {
   # Restore backed-up DNS entries.
   if [[ "$1" == "revert_to_backup" ]]; then
     if [[  ( $(detect_platform_type) == "macos" )  ]]; then
-      networksetup listallnetworkservices | tail +2 | while read interface; do
+      networksetup listallnetworkservices | tail +2 | while read -r interface; do
         file="$(get_protonvpn_cli_home)/$(sanitize_interface_name "$interface").dns_backup"
         if [[ -f "$file" ]]; then
           if grep -q "There aren't any DNS Servers set" "$file"; then
@@ -422,7 +422,7 @@ function check_if_profile_initialized() {
   _=$(cat "$(get_protonvpn_cli_home)/protonvpn_openvpn_credentials" "$(get_protonvpn_cli_home)/protonvpn_tier" &> /dev/null)
   if [[ $? != 0 ]]; then
     echo "[!] Profile is not initialized."
-    echo -e "Initialize your profile using: \n    $(basename $0) --init"
+    echo -e "Initialize your profile using: \n    $(basename "$0") --init"
     exit 1
   fi
 }
@@ -678,7 +678,7 @@ function uninstall_cli() {
   rm -f "/usr/local/bin/protonvpn-cli" "/usr/local/bin/pvpn" "/usr/bin/protonvpn-cli" "/usr/bin/pvpn" &> /dev/null
   if [[ $? != 0 ]]; then errors_counter=$((errors_counter+1)); fi
 
-  rm -rf "$(get_protonvpn_cli_home)/" &> /dev/null
+  rm -rf "$(get_protonvpn_cli_home/)" &> /dev/null
   if [[ $? != 0 ]]; then errors_counter=$((errors_counter+1)); fi
 
   if [[ ($errors_counter == 0) || ( $(which protonvpn-cli) == "" ) ]]; then
@@ -1505,7 +1505,7 @@ function show_version() {
 function help_message() {
     echo
     echo -e "ProtonVPN Command-Line Tool – v$version\n"
-    echo -e "Usage: $(basename $0) [option]\n"
+    echo -e "Usage: $(basename "$0") [option]\n"
     echo "Options:"
     echo "   --init                              Initialize ProtonVPN profile on the machine."
     echo "   -c, --connect                       Select and connect to a ProtonVPN server."
